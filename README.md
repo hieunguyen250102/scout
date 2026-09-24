@@ -105,7 +105,7 @@ Nếu muốn tạo thủ công thay vì Blueprint:
 | Mục | Giá trị |
 | --- | --- |
 | Runtime | Node |
-| Build Command | `npm install --prefix server && npm run build --prefix server` |
+| Build Command | `npm install --prefix server --include=dev && npm run build --prefix server` |
 | Start Command | `npm run start --prefix server` |
 | Health Check Path | `/health` |
 

@@ -4,7 +4,8 @@ services:
     runtime: node
     plan: free
     region: singapore
-    buildCommand: npm install --prefix server && npm run build --prefix server
+    # --include=dev: tsup lives in devDependencies, which NODE_ENV=production would skip
+    buildCommand: npm install --prefix server --include=dev && npm run build --prefix server
     startCommand: npm run start --prefix server
     healthCheckPath: /health
     envVars:
