@@ -135,4 +135,70 @@ for (const n of [2, 3, 4, 5]) {
   ok(room.phase === 'playing', 'set emptied by the scout keeps the round alive');
 }
 
+/* ------------------------------- who keeps the turn after a Scout, and why */
+
+function seated(count: number): Room {
+  const room = new Room('TURN');
+  for (let i = 0; i < count; i++) room.addPlayer({ id: `p${i}`, name: `P${i}`, avatar: i, isBot: true });
+  room.start();
+  for (const p of room.players) if (!p.flipDecided) room.decideFlip(p.id, false);
+  return room;
+}
+
+{
+  // 3-5 players: Scout is a whole turn. You do NOT get to Show afterwards —
+  // that is exactly what the Scout & Show chip is for, once per round.
+  const room = seated(3);
+  const first = room.current.id;
+  room.show(first, { type: 'show', indices: [0] });
+  const owner = room.activeSet!.ownerId;
+  const scouter = room.current.id;
+  const ownerChips = room.find(owner)!.scoutChips;
+
+  ok(room.scout(scouter, { type: 'scout', from: 'left', toIndex: 0, flip: false }) === null, 'scout accepted');
+  ok(room.current.id !== scouter, 'a plain Scout ends your turn when 3+ players are at the table');
+  ok(room.show(scouter, { type: 'show', indices: [0] }) !== null, 'the scouter cannot Show straight after scouting');
+  ok(room.find(owner)!.scoutChips === ownerChips + 1, 'the owner of the set is paid a Scout chip');
+  ok(room.find(scouter)!.scoutChips === 0, 'the scouter pays nothing in a 3-5 player game');
+}
+
+{
+  // Two players: the rulebook says scouting does NOT pass the turn — you keep
+  // going until you Show — and the chip is spent, not awarded.
+  const room = seated(2);
+  const first = room.current.id;
+  room.show(first, { type: 'show', indices: [0] });
+  const scouter = room.current.id;
+
+  ok(room.players.every((p) => p.scoutChips === 3), '2p starts each round with 3 chips each');
+  ok(room.privateState(scouter)!.canScoutShow === false, '2p never offers Scout & Show');
+
+  room.scout(scouter, { type: 'scout', from: 'left', toIndex: 0, flip: false });
+  ok(room.current.id === scouter, '2p keeps the turn with the scouting player');
+  ok(room.find(scouter)!.scoutChips === 2, '2p scouting spends one of your own chips');
+  ok(room.find(first)!.scoutChips === 3, '2p scouting pays the opponent nothing');
+}
+
+{
+  // Round 2 of a 2-player game uses the 22 cards set aside, never a repeat.
+  const room = seated(2);
+  const first = new Set(room.players.flatMap((p) => p.hand.map((c) => c.id)));
+  ok(first.size === 22, '2p round 1 deals 22 distinct cards');
+
+  // Let the bots play round 1 out rather than forcing it: an eleven-card hand
+  // is almost never a legal set, so it cannot simply be dumped in one Show.
+  let guard = 0;
+  while (room.phase === 'playing' && ++guard < 5000) {
+    const action = chooseAction(room, room.current.id);
+    if (!action) break;
+    if (action.type === 'show') room.show(room.current.id, action);
+    else room.scout(room.current.id, action);
+  }
+  ok(room.phase === 'roundEnd', 'round 1 reaches its end');
+  room.nextRound();
+  const second = new Set(room.players.flatMap((p) => p.hand.map((c) => c.id)));
+  ok(second.size === 22, '2p round 2 deals 22 distinct cards');
+  ok([...second].every((id) => !first.has(id)), '2p round 2 deals the cards that were set aside');
+}
+
 console.log(`\n  ✓ ${checks} rule checks passed (100 full bot games across 2–5 players)\n`);

@@ -11,7 +11,7 @@ import { Server, type Socket } from 'socket.io';
 
 import { Room, ROUND_END_PAUSE_MS } from './room';
 import { chooseAction } from './bot';
-import { requestCode, verifyCode, verifyToken, type User } from './auth';
+import { requestCode, verifyCode, verifyToken, type User, hostingIsRestricted } from './auth';
 import type { PlayerAction, ScoutAction, ShowAction } from '../../shared/types';
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -33,6 +33,8 @@ app.get('/health', (_req, res) => {
     ok: true,
     rooms: rooms.size,
     sockets: io.engine.clientsCount,
+    // false means HOST_EMAILS is unset and *anyone* who logs in can open a table
+    hostRestricted: hostingIsRestricted(),
     uptime: process.uptime(),
   });
 });

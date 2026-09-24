@@ -34,6 +34,15 @@ function canHost(email: string): boolean {
   return HOST_EMAILS.size === 0 || HOST_EMAILS.has(email);
 }
 
+/**
+ * Whether table creation is restricted at all. Exposed on /health so you can
+ * tell from outside whether a deployment actually has HOST_EMAILS set —
+ * forgetting it silently lets anyone create tables. Never reveals the addresses.
+ */
+export function hostingIsRestricted(): boolean {
+  return HOST_EMAILS.size > 0;
+}
+
 const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 
 const SECRET =
