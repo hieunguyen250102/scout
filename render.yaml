@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: scout-server
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install --prefix server && npm run build --prefix server
+    startCommand: npm run start --prefix server
+    healthCheckPath: /health
+    envVars:
+      # Comma-separated list of allowed origins, e.g.
+      #   https://scout-game.vercel.app,https://scout-game-*.vercel.app
+      # Leave unset (or "*") to allow any origin.
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Signs login sessions; Render generates a random value once and keeps it.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Email for login codes. The free plan blocks SMTP ports, so mail goes out
+      # over HTTPS. Recommended: the Vercel function api/send-code sends it via Gmail.
+      #   MAIL_RELAY_URL    = https://<your-app>.vercel.app/api/send-code
+      #   MAIL_RELAY_SECRET = same random string as on Vercel
+      # Alternatives: BREVO_API_KEY, or RESEND_API_KEY (needs a domain).
+      - key: MAIL_RELAY_URL
+        sync: false
+      - key: MAIL_RELAY_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      # Only these emails may create tables (comma-separated); others can only join.
+      - key: HOST_EMAILS
+        sync: false
+      # Sender shown in the inbox, e.g. "SCOUT <login@your-domain.com>"
+      - key: MAIL_FROM
+        sync: false

@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+
+/*
+ * A calm, matte palette: charcoal surfaces, a muted brass accent, a deep
+ * green table. Colour comes from the cards, not from glowing chrome.
+ */
+@theme {
+  --color-ink: #121419;
+  --color-ink-2: #1b1e24;
+  --color-ink-3: #252931;
+  --color-cream: #ece7dd;
+  --color-gold: #d4a557;
+  --color-gold-deep: #b48639;
+  --color-crimson: #c55b50;
+  --color-crimson-deep: #a24840;
+  --color-teal: #5aa392;
+
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-cream);
+  background: var(--color-ink);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Barely-there lift at the top of the page so it is not a flat slab. */
+.stage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(90% 60% at 50% -10%, rgba(255, 255, 255, 0.045), transparent 70%),
+    var(--color-ink);
+}
+
+.panel {
+  background: var(--color-ink-2);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.7);
+}
+
+.gold-rule {
+  background: rgba(255, 255, 255, 0.08);
+  height: 1px;
+}
+
+.field {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-ink);
+  padding: 0.65rem 0.9rem;
+  color: var(--color-cream);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field::placeholder {
+  color: rgba(236, 231, 221, 0.3);
+}
+.field:focus {
+  border-color: color-mix(in oklab, var(--color-gold) 70%, transparent);
+}
+
+.label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(236, 231, 221, 0.55);
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: 12px;
+  padding: 0.6rem 1.15rem;
+  transition:
+    transform 0.1s ease,
+    background-color 0.15s ease,
+    filter 0.15s ease;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.btn-gold {
+  background: var(--color-gold);
+  color: #221803;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+.btn-crimson {
+  background: var(--color-crimson-deep);
+  color: #fff4f1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+.btn-teal {
+  background: #3f8779;
+  color: #effaf6;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-cream);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  filter: none;
+}
+
+.display {
+  font-family: var(--font-display);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+/* The playing surface: matte green baize with a soft vignette. */
+.felt {
+  background: radial-gradient(100% 100% at 50% 35%, #25453b 0%, #1d382f 60%, #162b25 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 50px rgba(0, 0, 0, 0.4),
+    0 20px 50px -30px rgba(0, 0, 0, 0.9);
+}
+/* woven texture, so the felt is not a flat wash of colour */
+.felt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.6) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.3) 0 1px, transparent 1px 4px);
+}
+
+/* Cards get a 3-D flip; the wrapper owns the perspective. */
+.card3d {
+  perspective: 1400px;
+}
+.card3d-inner {
+  transform-style: preserve-3d;
+}
+.card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
