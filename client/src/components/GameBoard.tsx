@@ -209,10 +209,20 @@ export function GameBoard({
   const turnName = state.players[state.currentPlayer]?.name ?? '';
   const iAmStarter = state.players[state.startingPlayer]?.id === youId;
 
+  // In the 2-player variant a Scout does not pass the turn, which looks like a
+  // bug unless we say so: the player scouts and is suddenly "up" again.
+  const justScouted =
+    state.twoPlayer &&
+    isMyTurn &&
+    state.lastEvent?.kind === 'scout' &&
+    state.lastEvent.playerId === youId;
+
   const banner = () => {
     if (mode === 'pick-end') return <span className="text-gold">Chọn lá ở đầu bộ để Scout</span>;
     if (mode === 'place') return <span className="text-gold">Chạm vào chỗ muốn đặt lá — hoặc dùng ◀ ▶</span>;
     if (mode === 'select') return <span className="text-gold">Chọn bộ để đánh ra</span>;
+    if (justScouted)
+      return <span className="text-teal">Scout xong bạn vẫn giữ lượt — Show hoặc Scout tiếp</span>;
     return isMyTurn ? (
       <span className="text-teal">Tới lượt bạn!</span>
     ) : (
@@ -412,7 +422,7 @@ export function GameBoard({
 
           {isMyTurn && mode === 'idle' && (
             <>
-              <button type="button" disabled={!showCheck?.ok} onClick={submitShow} className="btn btn-gold min-w-28">
+              <button type="button" disabled={!showCheck?.ok} onClick={submitShow} className="btn btn-gold min-w-32 tabular-nums">
                 Show{selection && ` (${selectionIndices(selection).length})`}
               </button>
               <button
@@ -471,7 +481,7 @@ export function GameBoard({
                     submitScout();
                   }
                 }}
-                className="btn btn-gold min-w-28"
+                className="btn btn-gold min-w-32 tabular-nums"
               >
                 {scoutAndShow ? 'Đặt xong →' : 'Xác nhận'}
               </button>
@@ -483,7 +493,7 @@ export function GameBoard({
 
           {isMyTurn && mode === 'select' && (
             <>
-              <button type="button" disabled={!showCheck?.ok} onClick={submitShow} className="btn btn-gold min-w-28">
+              <button type="button" disabled={!showCheck?.ok} onClick={submitShow} className="btn btn-gold min-w-32 tabular-nums">
                 Scout &amp; Show{selection && ` (${selectionIndices(selection).length})`}
               </button>
               <button
@@ -510,19 +520,23 @@ export function GameBoard({
           )}
         </div>
 
-        {/* why the current selection is not allowed */}
-        <AnimatePresence>
-          {isMyTurn && showCheck && !showCheck.ok && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden px-3 pb-2 text-center text-xs text-crimson"
-            >
-              {showCheck.reason}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* why the current selection is not allowed — the line keeps its
+            height when empty, so the table above never jumps */}
+        <div className="flex h-6 items-start justify-center px-3 text-center text-xs text-crimson" aria-live="polite">
+          <AnimatePresence>
+            {isMyTurn && showCheck && !showCheck.ok && (
+              <motion.span
+                key={showCheck.reason}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                className="truncate"
+              >
+                {showCheck.reason}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* ------------------------------------------------ chat + log */}

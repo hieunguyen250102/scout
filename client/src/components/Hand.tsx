@@ -146,33 +146,45 @@ export function Hand({
         const dip = mid > 0 ? (t / mid) ** 2 * arc : 0;
         const raise = isSelected ? lift * 1.4 : hovered === i ? lift * 0.6 : 0;
 
+        const playable = !placing && interactive && selection === null && playableStarts.has(i);
+        const onClick = interactive ? () => onCardClick(i) : undefined;
+
+        // Two layers, so the mouse never chases the card. The outer slot holds
+        // the fan position and is the hit area: it does not move when a card
+        // lifts, it only reaches upward to cover the lifted card. The inner
+        // layer does the lifting and cannot be hit itself. Without this, a
+        // lifting card slides out from under the cursor, the neighbour gets
+        // hovered and lifts, and the hand jitters back and forth.
         return (
           <motion.div
             key={card.id}
-            className="absolute left-1/2 origin-bottom"
-            style={{ width: cardW, bottom: baseline, zIndex: isHot ? 60 + i : i }}
-            initial={{ opacity: 0, y: 150, rotate: 0, scale: 0.7 }}
-            animate={{
-              opacity: 1,
-              x: t * spacing - cardW / 2,
-              y: dip - raise,
-              rotate,
-              scale: isSelected ? 1.06 : 1,
-            }}
-            exit={{ opacity: 0, y: -100, scale: 0.6, transition: { duration: 0.2 } }}
+            className={`absolute left-1/2 origin-bottom ${onClick ? 'cursor-pointer' : ''}`}
+            style={{ width: cardW, height: cardH + raise, bottom: baseline, zIndex: isHot ? 60 + i : i }}
+            initial={{ opacity: 0, y: 150, rotate: 0 }}
+            animate={{ opacity: 1, x: t * spacing - cardW / 2, y: dip, rotate }}
+            exit={{ opacity: 0, y: -100, transition: { duration: 0.2 } }}
             transition={{ type: 'spring', stiffness: 340, damping: 30, mass: 0.7 }}
             onHoverStart={() => interactive && setHovered(i)}
             onHoverEnd={() => setHovered((h) => (h === i ? null : h))}
+            onClick={onClick}
           >
-            <PlayingCard
-              card={card}
-              selected={isSelected}
-              hint={isPlaced}
-              playable={!placing && interactive && selection === null && playableStarts.has(i)}
-              onClick={interactive ? () => onCardClick(i) : undefined}
-              className="w-full"
-              shadow
-            />
+            <motion.div
+              className="pointer-events-none absolute inset-x-0 bottom-0 origin-bottom"
+              initial={false}
+              animate={{ y: -raise, scale: isSelected ? 1.06 : 1 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.6 }}
+            >
+              <PlayingCard
+                card={card}
+                selected={isSelected}
+                hint={isPlaced}
+                playable={playable}
+                // keyboard only: mouse clicks land on the slot above
+                onClick={onClick}
+                className="w-full"
+                shadow
+              />
+            </motion.div>
           </motion.div>
         );
       })}
