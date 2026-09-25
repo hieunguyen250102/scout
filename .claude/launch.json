@@ -8,6 +8,12 @@
       "port": 4000
     },
     {
+      "name": "server-nomail",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["SMTP_HOST=", "HOST_EMAILS=", "npm", "run", "dev", "--prefix", "server"],
+      "port": 4000
+    },
+    {
       "name": "client",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "client"],

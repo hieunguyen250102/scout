@@ -19,6 +19,6 @@
     "concurrently": "^9.1.0"
   },
   "dependencies": {
-    "nodemailer": "^10.0.10"
+    "oink-kit": "github:hieunguyen250102/oink-kit#v1.0.0"
   }
 }

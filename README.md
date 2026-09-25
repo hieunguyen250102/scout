@@ -29,10 +29,10 @@ scout/
 ├── server/          # Express + Socket.IO — trọng tài
 │   ├── src/room.ts  # máy trạng thái của một bàn
 │   ├── src/bot.ts   # AI heuristic
-│   ├── src/auth.ts  # đăng nhập bằng mã email, ký phiên
+│   ├── src/auth.ts  # đăng nhập bằng mã email (dùng chung: oink-kit)
 │   ├── src/index.ts # socket + HTTP
 │   └── test/sim.ts  # 27k assertion + 100 ván bot tự đánh
-├── api/send-code.js # hàm Vercel: gửi mail mã đăng nhập qua Gmail SMTP
+├── api/send-code.js # hàm Vercel: gửi mail mã đăng nhập qua Gmail SMTP (oink-kit/relay)
 ├── client/          # React + Vite + Tailwind + Framer Motion
 │   ├── src/components/
 │   │   ├── Hand.tsx        # nan quạt: hình học, chọn bộ, đặt lá khi Scout
@@ -133,6 +133,11 @@ Gói Free của Render **chặn mọi cổng SMTP** (25, 465, 587). Vì vậy Re
 mail mà nhờ **Vercel** gửi hộ: hàm `api/send-code.js` (deploy cùng client) nhận email + mã
 qua HTTPS rồi gửi bằng Gmail SMTP. Mọi logic đăng nhập (tạo mã, giới hạn số lần thử…)
 vẫn nằm ở Render; hàm trên Vercel chỉ nhận đúng email + mã 6 số và tự dựng nội dung mail.
+
+Code đăng nhập và hàm gửi mail nằm trong package dùng chung
+[oink-kit](https://github.com/hieunguyen250102/oink-kit) (các game Oink khác cũng dùng). Thay vì
+hàm `api/send-code` của repo này, có thể trỏ `MAIL_RELAY_URL` tới relay chung `oink-mail`
+để mọi game dùng chung một tài khoản Gmail.
 
 Tạo một chuỗi bí mật dùng chung cho hai bên:
 
