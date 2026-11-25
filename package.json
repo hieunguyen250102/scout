@@ -19,6 +19,6 @@
     "concurrently": "^9.1.0"
   },
   "dependencies": {
-    "oink-kit": "github:hieunguyen250102/oink-kit#v1.0.0"
+    "oink-kit": "github:hieunguyen250102/oink-kit#v1.1.0"
   }
 }

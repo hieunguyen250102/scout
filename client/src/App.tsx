@@ -26,6 +26,10 @@ import type { ChatItem } from './components/Chat';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(loadSession);
+  // The id the server seats us under: the account when logged in, else this browser's guest id.
+  const [seatId, setSeatId] = useState<string>('');
+  const seatRef = useRef(seatId);
+  seatRef.current = seatId;
   const [identity, setIdentity] = useState<Identity>(loadIdentity);
   const [chat, setChat] = useState<ChatItem[]>([]);
   const [state, setState] = useState<GameState | null>(null);
@@ -41,7 +45,7 @@ export default function App() {
   identityRef.current = identity;
 
   const socket = getSocket();
-  const youId = session?.user.id ?? '';
+  const youId = seatId;
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -55,7 +59,7 @@ export default function App() {
       setConnected(true);
       // A refresh (or a dropped connection) walks straight back into the seat.
       const code = loadLastRoom();
-      if (!code || !loadSession()) return;
+      if (!code) return;
       const { name, avatar } = identityRef.current;
       socket.emit('room:join', { roomCode: code, name, avatar }, (res: { error?: string }) => {
         if (res?.error) {
@@ -73,7 +77,8 @@ export default function App() {
       showToast(message);
     };
     // The server tells us who it thinks we are; a stale token means logging in again.
-    const onSession = ({ user }: { user: SessionUser | null }) => {
+    const onSession = ({ user, seatId }: { user: SessionUser | null; seatId?: string | null }) => {
+      setSeatId(seatId ?? user?.id ?? '');
       const local = loadSession();
       if (local && !user) {
         saveSession(null);
@@ -90,7 +95,7 @@ export default function App() {
     const onChatHistory = (msgs: ChatMessage[]) => setChat(msgs.map((m) => ({ ...m, recvAt: 0 })));
     const onChatMsg = (m: ChatMessage) => {
       setChat((prev) => [...prev.slice(-79), { ...m, recvAt: Date.now() }]);
-      if (m.playerId !== loadSession()?.user.id) sfx.chat();
+      if (m.playerId !== seatRef.current) sfx.chat();
     };
 
     socket.on('connect', onConnect);
@@ -188,7 +193,7 @@ export default function App() {
 
   /* ------------------------------------------------------------ render */
 
-  const me = session ? state?.players.find((p) => p.id === youId) : undefined;
+  const me = youId ? state?.players.find((p) => p.id === youId) : undefined;
   const isHost = !!youId && state?.hostId === youId;
 
   return (

@@ -1,13 +1,14 @@
 /**
- * Landing screen. Signing in comes first: an email, then the 6-digit code
- * that was mailed to it. Only then can you pick a name and a face and
- * create or join a table.
+ * Landing screen. Players just pick a name and a face and type the room
+ * code — no login. Only the host signs in (an email, then the 6-digit code
+ * mailed to it) to get the "create room" button.
  */
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AVATAR_COLORS } from '../lib/theme';
 import { useEmailLogin } from 'oink-kit/react';
+import { roomCodeInput } from 'oink-kit/client';
 import { authClient, type Session } from '../lib/net';
 import { Avatar } from './PlayerSeat';
 import { Logo } from './Logo';
@@ -29,6 +30,9 @@ interface Props {
 
 export function Home(props: Props) {
   const { session, connected, onShowRules } = props;
+  // Opened by "I'm the host"; also reopened when the mail app reloaded the tab mid-login.
+  const [hostLogin, setHostLogin] = useState(() => !!authClient.loadPendingLogin());
+  const showLogin = hostLogin && !session;
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -48,12 +52,22 @@ export function Home(props: Props) {
           {/* Swap immediately; the fade is only decoration, so a paused
               animation (e.g. a background tab) can never hold the form back. */}
           <motion.div
-            key={session ? 'play' : 'login'}
+            key={showLogin ? 'login' : 'play'}
             initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {session ? <PlayForm {...props} session={session} /> : <LoginForm onLogin={props.onLogin} />}
+            {showLogin ? (
+              <LoginForm
+                onLogin={props.onLogin}
+                onCancel={() => {
+                  authClient.savePendingLogin(null);
+                  setHostLogin(false);
+                }}
+              />
+            ) : (
+              <PlayForm {...props} onHostLogin={() => setHostLogin(true)} />
+            )}
           </motion.div>
         </div>
 
@@ -77,7 +91,7 @@ export function Home(props: Props) {
 
 /* --------------------------------------------------------------- login */
 
-function LoginForm({ onLogin }: { onLogin: (s: Session) => void }) {
+function LoginForm({ onLogin, onCancel }: { onLogin: (s: Session) => void; onCancel: () => void }) {
   const login = useEmailLogin(authClient, {
     onLogin: (s) => {
       sfx.turn();
@@ -96,8 +110,10 @@ function LoginForm({ onLogin }: { onLogin: (s: Session) => void }) {
           void login.send();
         }}
       >
-        <h2 className="display text-lg font-bold text-cream">Đăng nhập</h2>
-        <p className="mt-0.5 text-xs text-cream/50">Nhập email, chúng tôi sẽ gửi cho bạn một mã 6 số.</p>
+        <h2 className="display text-lg font-bold text-cream">Đăng nhập chủ phòng</h2>
+        <p className="mt-0.5 text-xs text-cream/50">
+          Chỉ chủ phòng cần đăng nhập để tạo phòng. Nhập email, chúng tôi sẽ gửi cho bạn một mã 6 số.
+        </p>
 
         <label className="label mt-4" htmlFor="login-email">
           Email
@@ -117,6 +133,9 @@ function LoginForm({ onLogin }: { onLogin: (s: Session) => void }) {
 
         <button type="submit" disabled={!login.emailOk || busy} className="btn btn-gold mt-4 w-full">
           {busy ? 'Đang gửi…' : 'Gửi mã đăng nhập'}
+        </button>
+        <button type="button" onClick={onCancel} className="mt-3 text-xs text-cream/55 hover:text-cream">
+          ← Quay lại, tôi chỉ vào phòng
         </button>
       </form>
     );
@@ -190,23 +209,27 @@ function PlayForm({
   onJoin,
   connected,
   initialCode,
-}: Props & { session: Session }) {
+  onHostLogin,
+}: Props & { onHostLogin: () => void }) {
   const [code, setCode] = useState(initialCode ?? '');
   const canPlay = connected && name.trim().length > 0;
+  const canHost = !!session?.user.canHost;
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2 rounded-xl bg-ink px-3 py-2 text-xs">
-        <span className="flex min-w-0 items-center gap-1.5 text-cream/60">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
-          <span className="truncate">{session.user.email}</span>
-        </span>
-        <button type="button" onClick={onLogout} className="shrink-0 text-cream/45 hover:text-cream">
-          Đăng xuất
-        </button>
-      </div>
+      {session && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-xl bg-ink px-3 py-2 text-xs">
+          <span className="flex min-w-0 items-center gap-1.5 text-cream/60">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
+            <span className="truncate">{session.user.email}</span>
+          </span>
+          <button type="button" onClick={onLogout} className="shrink-0 text-cream/45 hover:text-cream">
+            Đăng xuất
+          </button>
+        </div>
+      )}
 
-      <label className="label mt-4" htmlFor="player-name">
+      <label className="label" htmlFor="player-name">
         Tên hiển thị
       </label>
       <input
@@ -241,7 +264,7 @@ function PlayForm({
 
       <div className="gold-rule my-5" />
 
-      {session.user.canHost ? (
+      {canHost ? (
         <>
           <button
             type="button"
@@ -278,14 +301,12 @@ function PlayForm({
       >
         <input
           value={code}
-          onChange={(e) =>
-            setCode(
-              e.target.value
-                .toUpperCase()
-                .replace(/[^A-Z0-9]/g, '')
-                .slice(0, 4),
-            )
-          }
+          // roomCodeInput undoes Vietnamese Telex rewrites, e.g. a lone "w" turning into "ư"
+          onChange={(e) => setCode(roomCodeInput(e.target.value, code, 4, e.target.selectionStart))}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="characters"
+          spellCheck={false}
           placeholder="MÃ PHÒNG"
           aria-label="Mã phòng"
           className="field display min-w-0 text-center text-lg font-extrabold tracking-[0.35em] placeholder:text-sm placeholder:font-semibold placeholder:tracking-[0.2em]"
@@ -293,11 +314,21 @@ function PlayForm({
         <button
           type="submit"
           disabled={!canPlay || code.length < 4}
-          className={`btn shrink-0 ${session.user.canHost ? 'btn-ghost' : 'btn-gold'}`}
+          className={`btn shrink-0 ${canHost ? 'btn-ghost' : 'btn-gold'}`}
         >
           Vào
         </button>
       </form>
+
+      {!session && (
+        <button
+          type="button"
+          onClick={onHostLogin}
+          className="mt-4 w-full text-center text-xs text-cream/45 underline-offset-4 hover:text-cream hover:underline"
+        >
+          Bạn là chủ phòng? Đăng nhập để tạo phòng
+        </button>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { Server, type Socket } from 'socket.io';
 
 import { Room, ROUND_END_PAUSE_MS } from './room';
 import { chooseAction } from './bot';
-import { authError, authHandler, originPolicy, socketAuth } from 'oink-kit/server';
+import { authError, authHandler, NO_SEAT, originPolicy, seatId, socketAuth } from 'oink-kit/server';
 import { auth, type User } from './auth';
 import type { PlayerAction, ScoutAction, ShowAction } from '../../shared/types';
 
@@ -192,7 +192,7 @@ setInterval(
 
 type Ack<T> = (res: T) => void;
 
-/** Anyone may connect, but only a signed-in socket gets a seat. */
+/** Anyone may connect and join; only a signed-in host account may create a room. */
 io.use(socketAuth(auth));
 
 io.on('connection', (socket: Socket) => {
@@ -201,7 +201,9 @@ io.on('connection', (socket: Socket) => {
   let playerId: string | null = null;
   const chatTimes: number[] = [];
 
-  socket.emit('session', { user });
+  // Who we seat you as: your account when logged in, else this browser's guest id.
+  const seat = seatId(socket);
+  socket.emit('session', { user, seatId: seat });
 
   const fail = (msg: string) => socket.emit('errorMsg', { message: msg });
 
@@ -234,9 +236,9 @@ io.on('connection', (socket: Socket) => {
       { roomCode, name, avatar }: { roomCode: string; name: string; avatar: number },
       ack?: Ack<any>,
     ) => {
-      const denied = authError(user);
-      if (denied || !user) return ack?.({ error: denied });
-      const pid = user.id;
+      // No login needed to join: a guest sits under this browser's guest id.
+      const pid = seat;
+      if (!pid) return ack?.({ error: NO_SEAT });
       const code = (roomCode ?? '').toUpperCase().trim();
       const room = rooms.get(code);
       if (!room) return ack?.({ error: 'Không tìm thấy phòng' });
